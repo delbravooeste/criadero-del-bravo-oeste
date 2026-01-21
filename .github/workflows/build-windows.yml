@@ -1,5 +1,5 @@
 name: Build Windows EXE
-
+run: npx electron-builder --win --x64 --publish=never
 on:
   push:
     branches: [ main ]
