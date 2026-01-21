@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reporte Criadero</title>
+<style>
+body { font-family: Arial; margin:40px; font-size:12px; }
+.header { display:flex; align-items:center; border-bottom:2px solid #000; }
+.logo {
+  width:120px; height:80px;
+  border:1px dashed #999;
+  display:flex; align-items:center; justify-content:center;
+  margin-right:20px; font-size:10px;
+}
+.criadero { font-size:20px; font-weight:bold; }
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <div class="logo">LOGO<br>CRIADERO</div>
+  <div class="criadero">Sistema de Criadero</div>
+</div>
+
+<br>
+
+<strong>Nombre:</strong> {{nombre}}<br>
+<strong>FCA:</strong> {{fca}}<br>
+<strong>Sexo:</strong> {{sexo}}<br>
+<strong>Fecha nacimiento:</strong> {{fecha_nacimiento}}<br>
+
+<hr>
+
+<strong>Pedigree</strong><br><br>
+{{pedigree}}
+
+<hr>
+
+<strong>COI:</strong> {{coi}} %<br><br>
+
+<small>Reporte generado el {{fecha_reporte}}</small>
+
+</body>
+</html>

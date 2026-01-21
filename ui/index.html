@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistema de Criadero</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 { margin-bottom: 10px; }
+    h2 { margin-top: 30px; }
+    h3 { margin-top: 20px; }
+
+    input, select, button {
+      padding: 6px;
+      margin: 5px 0;
+      width: 300px;
+    }
+    button {
+      width: auto;
+      cursor: pointer;
+    }
+    hr {
+      margin: 30px 0;
+    }
+    .box {
+      border: 1px solid #ccc;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .danger { color: red; font-weight: bold; }
+    .warn { color: #c77c00; font-weight: bold; }
+    .ok { color: green; font-weight: bold; }
+    ul { margin: 5px 0; }
+    small { color: #555; }
+  </style>
+</head>
+
+<body>
+
+<h1>🐶 Sistema de Criadero</h1>
+
+<!-- ==================================================
+     ALTA / EDICIÓN
+================================================== -->
+<h2>Alta / edición de perro</h2>
+
+<input type="hidden" id="id">
+
+<label>Nombre</label><br>
+<input id="nombre"><br>
+
+<label>FCA</label><br>
+<input id="fca"><br>
+
+<label>Fecha de nacimiento</label><br>
+<input id="fecha_nacimiento" type="date"><br>
+
+<label>Sexo</label><br>
+<select id="sexo">
+  <option value="M">Macho</option>
+  <option value="F">Hembra</option>
+</select><br>
+
+<label>Padre</label><br>
+<select id="padre">
+  <option value="">-- Sin padre --</option>
+</select><br>
+
+<label>Madre</label><br>
+<select id="madre">
+  <option value="">-- Sin madre --</option>
+</select><br>
+
+<button onclick="guardar()">Guardar</button>
+<button onclick="limpiar()">Nuevo</button>
+
+<hr>
+
+<!-- ==================================================
+     SELECCIÓN
+================================================== -->
+<h2>Seleccionar perro</h2>
+
+<select id="selector">
+  <option value="">-- Seleccionar --</option>
+</select>
+<button onclick="seleccionar()">Cargar</button>
+
+<hr>
+
+<!-- ==================================================
+     PEDIGREE
+================================================== -->
+<h2>Pedigree (5 generaciones)</h2>
+<button onclick="verPedigree()">Ver pedigree</button>
+<button onclick="exportarPDF()">Exportar PDF</button>
+
+<div id="pedigree" class="box"></div>
+
+<hr>
+
+<!-- ==================================================
+     COI DEL PERRO
+================================================== -->
+<h2>COI del perro</h2>
+<button onclick="verCOI()">Calcular COI</button>
+
+<div id="coi" class="box"></div>
+
+<hr>
+
+<!-- ==================================================
+     COI DE CRUCE
+================================================== -->
+<h2>Evaluar cruce (COI)</h2>
+
+<label>Macho</label><br>
+<select id="cruce_padre">
+  <option value="">-- Seleccionar macho --</option>
+</select><br>
+
+<label>Hembra</label><br>
+<select id="cruce_madre">
+  <option value="">-- Seleccionar hembra --</option>
+</select><br>
+
+<button onclick="evaluarCruce()">Evaluar cruce</button>
+
+<div id="coi_cruce" class="box"></div>
+
+<script>
+const { ipcRenderer } = require('electron');
+
+function sx(v) {
+  return (v || '').toUpperCase().trim().charAt(0);
+}
+
+/* ==================================================
+   CARGA GENERAL
+================================================== */
+async function cargar() {
+  const perros = await ipcRenderer.invoke('listar-perros');
+
+  const selects = [
+    'selector','padre','madre',
+    'cruce_padre','cruce_madre'
+  ];
+
+  selects.forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = `<option value="">-- Seleccionar --</option>`;
+  });
+
+  perros.forEach(p => {
+    selector.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+
+    if (sx(p.sexo) === 'M') {
+      padre.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+      cruce_padre.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+    }
+
+    if (sx(p.sexo) === 'F') {
+      madre.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+      cruce_madre.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+    }
+  });
+}
+
+/* ==================================================
+   CRUD
+================================================== */
+async function guardar() {
+  const payload = {
+    id: id.value ? Number(id.value) : null,
+    nombre: nombre.value,
+    sexo: sexo.value,
+    padre_id: padre.value || null,
+    madre_id: madre.value || null,
+    fca: fca.value,
+    fecha_nacimiento: fecha_nacimiento.value
+  };
+
+  let r;
+  if (payload.id) {
+    r = await ipcRenderer.invoke('editar-perro', payload);
+  } else {
+    r = await ipcRenderer.invoke('crear-perro', payload);
+  }
+
+  if (r && r.error) {
+    alert(r.error);
+    return;
+  }
+
+  limpiar();
+  cargar();
+}
+
+function limpiar() {
+  id.value = '';
+  nombre.value = '';
+  fca.value = '';
+  fecha_nacimiento.value = '';
+  sexo.value = 'M';
+  padre.value = '';
+  madre.value = '';
+}
+
+async function seleccionar() {
+  if (!selector.value) return;
+
+  const p = await ipcRenderer.invoke('obtener-perro', Number(selector.value));
+  if (!p) return;
+
+  id.value = p.id;
+  nombre.value = p.nombre;
+  fca.value = p.fca || '';
+  fecha_nacimiento.value = p.fecha_nacimiento || '';
+  sexo.value = p.sexo;
+  padre.value = p.padre_id || '';
+  madre.value = p.madre_id || '';
+}
+
+/* ==================================================
+   PEDIGREE
+================================================== */
+async function verPedigree() {
+  if (!id.value) {
+    alert('Seleccioná un perro');
+    return;
+  }
+
+  const data = await ipcRenderer.invoke('pedigree-5g', Number(id.value));
+  if (!data) return;
+
+  const gen = {};
+  data.ancestros.forEach(a => {
+    if (!gen[a.nivel]) gen[a.nivel] = [];
+    gen[a.nivel].push(a);
+  });
+
+  let html = `<strong>🐶 ${data.perro.nombre}</strong><hr>`;
+
+  for (let i = 1; i <= 5; i++) {
+    html += `<strong>Generación ${i}</strong><ul>`;
+    (gen[i] || []).forEach(a => {
+      html += `<li>${a.nombre} <small>(${a.linea === 'P' ? 'paterna' : 'materna'})</small></li>`;
+    });
+    html += `</ul>`;
+  }
+
+  pedigree.innerHTML = html;
+}
+
+/* ==================================================
+   EXPORTAR PDF
+================================================== */
+async function exportarPDF() {
+  if (!id.value) {
+    alert('Seleccioná un perro');
+    return;
+  }
+
+  const r = await ipcRenderer.invoke('exportar-pdf', Number(id.value));
+  if (r?.error) alert(r.error);
+}
+
+/* ==================================================
+   COI DEL PERRO
+================================================== */
+async function verCOI() {
+  if (!id.value) {
+    alert('Seleccioná un perro');
+    return;
+  }
+
+  const r = await ipcRenderer.invoke('calcular-coi', Number(id.value));
+  coi.innerHTML = `<strong>COI:</strong> ${r.porcentaje}%`;
+}
+
+/* ==================================================
+   COI DE CRUCE
+================================================== */
+async function evaluarCruce() {
+  const r = await ipcRenderer.invoke(
+    'calcular-coi-cruce',
+    Number(cruce_padre.value),
+    Number(cruce_madre.value)
+  );
+
+  if (r.error) {
+    coi_cruce.innerHTML = `<span class="danger">${r.error}</span>`;
+    return;
+  }
+
+  let clase = 'ok';
+  if (r.parentesco.includes('PROHIBIDO')) clase = 'danger';
+  else if (parseFloat(r.porcentaje) >= 6) clase = 'warn';
+
+  coi_cruce.innerHTML = `
+    <strong>Cruce:</strong> ${r.padre} × ${r.madre}<br>
+    <strong>Parentesco:</strong>
+    <span class="${clase}">${r.parentesco}</span><br>
+    <strong>COI:</strong> ${r.porcentaje}%
+  `;
+}
+
+cargar();
+</script>
+
+</body>
+</html>
