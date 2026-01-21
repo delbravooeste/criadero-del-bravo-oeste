@@ -1,18 +1,39 @@
 {
-  "name": "criadero",
+  "name": "criadero-del-bravo-oeste",
   "version": "1.0.0",
   "description": "Sistema de cría canina",
   "main": "main.js",
-  "scripts": {
-    "start": "electron ."
-  },
-  "author": "",
+  "author": "Oscar Fernandez",
   "license": "ISC",
   "type": "commonjs",
+
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64"
+  },
+
+  "build": {
+    "appId": "com.delbravooeste.criadero",
+    "productName": "Criadero Del Bravo Oeste",
+    "copyright": "© 2026 Criadero Del Bravo Oeste – Oscar Fernández",
+    "files": [
+      "**/*",
+      "!node_modules/**/node-gyp/**",
+      "!node_modules/.bin/**"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
+
   "devDependencies": {
     "electron": "^30.0.0",
-    "electron-rebuild": "^3.2.9"
+    "electron-builder": "^26.4.0"
   },
+
   "dependencies": {
     "better-sqlite3": "^12.6.0"
   }
